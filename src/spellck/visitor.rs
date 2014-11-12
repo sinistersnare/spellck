@@ -11,11 +11,13 @@ use syntax::ast_util::PostExpansionMethod;
 use rustc::middle::privacy::ExportedItems;
 
 use words;
+use stem;
 
 pub struct Position {
     pub span: Span,
     pub id: NodeId,
 }
+
 impl Position {
     fn new(sp: Span, id: NodeId) -> Position {
         Position { span: sp, id: id, }
@@ -75,9 +77,17 @@ impl<'a> SpellingVisitor<'a> {
     /// splitting it at all. Any word that isn't entirely alphabetic
     /// is automatically considered a proper word.
     fn raw_word_is_correct(&mut self, w: &str) -> bool {
-        self.words.contains_equiv(&w) ||
-            !w.chars().all(|c| c.is_alphabetic()) ||
-            self.words.contains_equiv(&w.to_ascii_lower())
+        self.words.contains_equiv(w.as_slice()) ||
+            !w.chars().all(|c| c.is_alphabetic()) || {
+                let lower = w.to_ascii_lower();
+                self.words.contains_equiv(lower.as_slice()) ||
+                self.stemmed_word_is_correct(lower.as_slice())
+            }
+    }
+
+    fn stemmed_word_is_correct(&self, w: &str) -> bool {
+        stem::get(w).ok().map_or(false,
+            |s| self.words.contains_equiv(s.as_slice()))
     }
 
     /// Check a word for correctness, including splitting `foo_bar`
@@ -88,7 +98,7 @@ impl<'a> SpellingVisitor<'a> {
         for w in words::subwords(w) {
             if !self.raw_word_is_correct(w) {
                 let w = w.to_string();
-                match self.misspellings.find_mut(&pos) {
+                match self.misspellings.get_mut(&pos) {
                     Some(v) => {
                         v.push(w);
                         continue
@@ -253,8 +263,9 @@ impl<'a, 'v> visit::Visitor<'v> for SpellingVisitor<'a> {
                 self.check_ident(method.pe_ident(), Position::new(method.span, method.id));
             }
             ast::TypeTraitItem(ref item) => {
-                self.check_doc_attrs(item.attrs.as_slice(), item.id);
-                self.check_ident(item.ident, Position::new(item.span, item.id));
+                let ast::AssociatedType { ref attrs, ref ty_param } = **item;
+                self.check_doc_attrs(attrs.as_slice(), ty_param.id);
+                self.check_ident(ty_param.ident, Position::new(ty_param.span, ty_param.id));
             }
         }
     }
