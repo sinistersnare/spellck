@@ -16,7 +16,7 @@ line. `src/stdlib.txt` is the words/abbreviations/sequences of letters
 from the Rust standard library that are correct, but are not in my
 `/usr/share/dict/words`.
 
-Known to work with Rust commit b87619e27 2014-11-02 23:27:10.
+Known to work with Rust commit 336349c93 2014-11-17 20:37:19.
 
 
 ## Installation
@@ -81,6 +81,14 @@ spellck_example.rs:6 /// Bad dok coment
 spellck_example.rs:7:1: 7:22 warning: misspelled word: mispelled, #[warn(misspellings)] on by default
 spellck_example.rs:7 pub fn mispelled() {}
                      ^~~~~~~~~~~~~~~~~~~~~
+```
+
+Words can also be added to the list of valid words using an attribute in the crate root like so:
+
+```rust
+// lib.rs -- the crate root
+#![spellck_extra_words="these are not in word list but are now"]
+
 ```
 
 At the moment, the explicit `extern crate` is required as there is no
