@@ -3,6 +3,8 @@ use std::io::{File, BufferedReader};
 use std::collections::HashSet ;
 
 use syntax::ast;
+use syntax::ast::Lit_::{LitStr};
+use syntax::ast::MetaItem_::{MetaNameValue};
 
 use rustc::lint::{Context, LintArray, LintPass};
 
@@ -67,6 +69,18 @@ impl LintPass for Misspellings {
                 return
             }
         }
+
+        for attr in krate.attrs.iter() {
+            if let MetaNameValue(ref name, ref lit) = attr.node.value.node {
+
+                if let LitStr(ref raw_words, _) = lit.node {
+                    if name.get() == "spellck_extra_words" {
+                        self.words.extend(raw_words.get().split_str(" ").map(|w| w.to_string()))
+                    }
+                }
+            }
+        }
+
         let mut v = visitor::SpellingVisitor::new(&self.words, cx.exported_items);
         v.check_crate(krate);
 
