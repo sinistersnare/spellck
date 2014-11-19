@@ -72,7 +72,6 @@ impl LintPass for Misspellings {
 
         for attr in krate.attrs.iter() {
             if let MetaNameValue(ref name, ref lit) = attr.node.value.node {
-
                 if let LitStr(ref raw_words, _) = lit.node {
                     if name.get() == "spellck_extra_words" {
                         self.words.extend(raw_words.get().split_str(" ").map(|w| w.to_string()))
